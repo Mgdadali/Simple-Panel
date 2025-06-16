@@ -1,15 +1,25 @@
 import os
 import json
+import requests
 from flask import Flask, request, render_template_string, redirect, url_for, session
 import gspread
-from google.oauth2.service_account 
-import Credentials
+from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # غيّرو في الإنتاج
+app.secret_key = 'your_secret_key_here'  # غيّر المفتاح في الإنتاج
 
-# بيانات الدخول للموظفين (في الإنتاج خزنها في قاعدة بيانات)
+# ------------------ إعداد Google Sheets ------------------
+SHEET_ID = '10-gDKaxRQfJqkIoiF3BYQ0YiNXzG7Ml9Pm5r9X9xfCM'
+scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+
+json_creds = os.getenv('GOOGLE_CREDENTIALS')
+info = json.loads(json_creds)
+credentials = Credentials.from_service_account_info(info, scopes=scopes)
+client = gspread.authorize(credentials)
+sheet = client.open_by_key(SHEET_ID).worksheet("sheet")
+
+# ------------------ بيانات الموظفين ------------------
 USERS = {
     "201029664170": "pass1",
     "201029773000": "pass2",
@@ -20,56 +30,73 @@ USERS = {
     "201055855030": "pass7"
 }
 
-# إعداد Google Sheet
-SHEET_ID = '10-gDKaxRQfJqkIoiF3BYQ0YiNXzG7Ml9Pm5r9X9xfCM'
-scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+# ------------------ متغيرات Ultramsg ------------------
+ULTRAMSG_INSTANCE_ID = os.getenv("ULTRA_INSTANCE_ID")
+ULTRAMSG_TOKEN = os.getenv("ULTRA_TOKEN")
 
-# تحميل بيانات اعتماد Google من متغير البيئة
-json_creds = os.getenv('GOOGLE_CREDENTIALS')
-info = json.loads(json_creds)
-credentials = Credentials.from_service_account_info(info, scopes=scopes)
-client = gspread.authorize(credentials)
-sheet = client.open_by_key(SHEET_ID).worksheet("sheet")
+# ------------------ دالة إرسال رسالة ------------------
+def send_reply(to_number, message):
+    url = f"https://api.ultramsg.com/{ULTRAMSG_INSTANCE_ID}/messages/chat"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {
+        "token": ULTRAMSG_TOKEN,
+        "to": to_number,
+        "body": message,
+    }
+    response = requests.post(url, data=data, headers=headers)
+    print("📤 إرسال إلى:", to_number, "| كود:", response.status_code)
+    return response.status_code == 200
 
-# HTML - صفحة تسجيل الدخول
+# ------------------ صفحة تسجيل الدخول ------------------
 LOGIN_PAGE = '''
 <!doctype html>
-<html>
-<head><title>تسجيل الدخول</title></head>
-<body style="text-align:center; font-family:sans-serif">
+<title>تسجيل الدخول</title>
 <h2>تسجيل الدخول</h2>
 <form method="POST">
-  <input type="text" name="username" placeholder="رقم الموظف" required><br><br>
-  <input type="password" name="password" placeholder="كلمة المرور" required><br><br>
+  <label>رقم الموظف:</label><br>
+  <input type="text" name="username" required><br>
+  <label>كلمة المرور:</label><br>
+  <input type="password" name="password" required><br><br>
   <input type="submit" value="دخول">
 </form>
 {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
-</body>
-</html>
 '''
 
-# HTML - لوحة التحكم
+# ------------------ لوحة الموظف ------------------
 DASHBOARD_PAGE = '''
 <!doctype html>
-<html>
-<head><title>لوحة التحكم</title></head>
-<body style="font-family:sans-serif">
+<title>لوحة الموظف</title>
 <h2>مرحبًا {{ username }}</h2>
-<table border="1" cellpadding="10">
-  <tr><th>رقم العميل</th><th>الرسالة الأخيرة</th><th>الوقت</th><th>رد</th></tr>
-  {% for row in messages %}
-  <tr>
-    <td>{{ row.Phone }}</td>
-    <td>{{ row.LastMessage }}</td>
-    <td>{{ row.LastAssignedTime }}</td>
-    <td><form method="POST" action="/reply/{{ row.Phone }}"><input type="submit" value="رد"></form></td>
-  </tr>
-  {% endfor %}
-</table>
-<br><a href="{{ url_for('logout') }}">تسجيل الخروج</a>
-</body>
-</html>
+<p>هذه رسائلك:</p>
+
+{% for msg in messages %}
+  <div style="border:1px solid #ccc; padding:10px; margin:10px 0; border-radius:10px">
+    <p><strong>📱 رقم العميل:</strong> {{ msg.phone }}</p>
+    <p><strong>💬 آخر رسالة:</strong> {{ msg.last_message }}</p>
+    <form action="{{ url_for('send_reply_route') }}" method="POST">
+      <input type="hidden" name="phone" value="{{ msg.phone }}">
+      <textarea name="reply" placeholder="اكتب الرد هنا..." rows="2" cols="50" required></textarea><br>
+      <button type="submit">📤 إرسال</button>
+    </form>
+  </div>
+{% endfor %}
+
+<a href="{{ url_for('logout') }}">🚪 تسجيل الخروج</a>
 '''
+
+# ------------------ فلتر رسائل الموظف ------------------
+def get_user_messages(username):
+    data = sheet.get_all_records()
+    msgs = []
+    for row in data:
+        if row.get("AssignedTo") == username:
+            msgs.append({
+                "phone": row.get("Phone"),
+                "last_message": row.get("LastMessage"),
+            })
+    return msgs
+
+# ------------------ Routes ------------------
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -88,20 +115,27 @@ def login():
 def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
+    username = session['user']
+    messages = get_user_messages(username)
+    return render_template_string(DASHBOARD_PAGE, username=username, messages=messages)
 
-    all_data = sheet.get_all_records()
-    user_data = [row for row in all_data if row['AssignedTo'] == session['user']]
-    return render_template_string(DASHBOARD_PAGE, username=session['user'], messages=user_data)
-
-@app.route('/reply/<phone>', methods=['POST'])
-def reply(phone):
-    return f"هنا سيتم فتح صفحة الرد على: {phone}"
+@app.route('/send_reply', methods=['POST'])
+def send_reply_route():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    phone = request.form.get('phone')
+    reply = request.form.get('reply')
+    if phone and reply:
+        success = send_reply(phone, reply)
+        return redirect(url_for('dashboard')) if success else "فشل الإرسال", 500
+    return "بيانات ناقصة", 400
 
 @app.route('/logout')
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
+# ------------------ تشغيل التطبيق ------------------
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
