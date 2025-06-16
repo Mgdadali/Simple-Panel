@@ -1,25 +1,14 @@
 import os
 import json
-import requests
 from flask import Flask, request, render_template_string, redirect, url_for, session
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # غيّر المفتاح في الإنتاج
+app.secret_key = 'your_secret_key_here'  # غيّره في الإنتاج
 
-# ------------------ إعداد Google Sheets ------------------
-SHEET_ID = '10-gDKaxRQfJqkIoiF3BYQ0YiNXzG7Ml9Pm5r9X9xfCM'
-scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-
-json_creds = os.getenv('GOOGLE_CREDENTIALS')
-info = json.loads(json_creds)
-credentials = Credentials.from_service_account_info(info, scopes=scopes)
-client = gspread.authorize(credentials)
-sheet = client.open_by_key(SHEET_ID).worksheet("sheet")
-
-# ------------------ بيانات الموظفين ------------------
+# بيانات الدخول للمستخدمين
 USERS = {
     "201029664170": "pass1",
     "201029773000": "pass2",
@@ -30,24 +19,17 @@ USERS = {
     "201055855030": "pass7"
 }
 
-# ------------------ متغيرات Ultramsg ------------------
-ULTRAMSG_INSTANCE_ID = os.getenv("ULTRA_INSTANCE_ID")
-ULTRAMSG_TOKEN = os.getenv("ULTRA_TOKEN")
+# إعداد Google Sheet
+SHEET_ID = '10-gDKaxRQfJqkIoiF3BYQ0YiNXzG7Ml9Pm5r9X9xfCM'
+scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# ------------------ دالة إرسال رسالة ------------------
-def send_reply(to_number, message):
-    url = f"https://api.ultramsg.com/{ULTRAMSG_INSTANCE_ID}/messages/chat"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    data = {
-        "token": ULTRAMSG_TOKEN,
-        "to": to_number,
-        "body": message,
-    }
-    response = requests.post(url, data=data, headers=headers)
-    print("📤 إرسال إلى:", to_number, "| كود:", response.status_code)
-    return response.status_code == 200
+json_creds = os.getenv('GOOGLE_CREDENTIALS')
+info = json.loads(json_creds)
+credentials = Credentials.from_service_account_info(info, scopes=scopes)
+client = gspread.authorize(credentials)
+sheet = client.open_by_key(SHEET_ID).worksheet("sheet")  # اسم الورقة
 
-# ------------------ صفحة تسجيل الدخول ------------------
+# واجهة تسجيل الدخول
 LOGIN_PAGE = '''
 <!doctype html>
 <title>تسجيل الدخول</title>
@@ -62,41 +44,34 @@ LOGIN_PAGE = '''
 {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
 '''
 
-# ------------------ لوحة الموظف ------------------
+# لوحة التحكم
 DASHBOARD_PAGE = '''
 <!doctype html>
-<title>لوحة الموظف</title>
+<title>لوحة التحكم</title>
 <h2>مرحبًا {{ username }}</h2>
-<p>هذه رسائلك:</p>
-
-{% for msg in messages %}
-  <div style="border:1px solid #ccc; padding:10px; margin:10px 0; border-radius:10px">
-    <p><strong>📱 رقم العميل:</strong> {{ msg.phone }}</p>
-    <p><strong>💬 آخر رسالة:</strong> {{ msg.last_message }}</p>
-    <form action="{{ url_for('send_reply_route') }}" method="POST">
-      <input type="hidden" name="phone" value="{{ msg.phone }}">
-      <textarea name="reply" placeholder="اكتب الرد هنا..." rows="2" cols="50" required></textarea><br>
-      <button type="submit">📤 إرسال</button>
-    </form>
-  </div>
-{% endfor %}
-
+{% if messages %}
+  <ul>
+    {% for msg in messages %}
+      <li><strong>{{ msg.phone }}</strong>: {{ msg.last_message }}</li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>🚫 لا توجد رسائل حتى الآن.</p>
+{% endif %}
 <a href="{{ url_for('logout') }}">🚪 تسجيل الخروج</a>
 '''
 
-# ------------------ فلتر رسائل الموظف ------------------
 def get_user_messages(username):
     data = sheet.get_all_records()
     msgs = []
     for row in data:
-        if row.get("AssignedTo") == username:
+        assigned = str(row.get("AssignedTo")).strip()
+        if assigned == str(username).strip():
             msgs.append({
-                "phone": row.get("Phone"),
+                "phone": str(row.get("Phone")),
                 "last_message": row.get("LastMessage"),
             })
     return msgs
-
-# ------------------ Routes ------------------
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -115,27 +90,15 @@ def login():
 def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
-    username = session['user']
-    messages = get_user_messages(username)
-    return render_template_string(DASHBOARD_PAGE, username=username, messages=messages)
-
-@app.route('/send_reply', methods=['POST'])
-def send_reply_route():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    phone = request.form.get('phone')
-    reply = request.form.get('reply')
-    if phone and reply:
-        success = send_reply(phone, reply)
-        return redirect(url_for('dashboard')) if success else "فشل الإرسال", 500
-    return "بيانات ناقصة", 400
+    user = session['user']
+    messages = get_user_messages(user)
+    return render_template_string(DASHBOARD_PAGE, username=user, messages=messages)
 
 @app.route('/logout')
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
-# ------------------ تشغيل التطبيق ------------------
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
