@@ -1,12 +1,13 @@
-import os 
+import os
 import json 
-from flask import Flask, request, render_template_string, redirect, url_for, session
+from flask import Flask, request, render_template_string, redirect, url_for, session 
 import gspread 
 from google.oauth2.service_account import Credentials 
 from datetime import datetime 
 import requests
 
-app = Flask(name) app.secret_key = 'your_secret_key_here'  # غيّرو في الإنتاج
+app = Flask(name)
+app.secret_key = 'your_secret_key_here'  # غيّرو في الإنتاج
 
 بيانات الموظفين
 
@@ -72,5 +73,7 @@ return render_template_string(DASHBOARD_PAGE, username=username, messages=my_mes
 
 @app.route('/logout') def logout(): session.pop('user', None) return redirect(url_for('login'))
 
-def send_message(to, message): url = f"https://api.ultramsg.com/{ULTRAMSG_INSTANCE}/messages/chat" headers = {"Content-Type": "application/x-www-form-urlencoded"}
+def send_message(to, message): url = f"https://api.ultramsg.com/{ULTRAMSG_INSTANCE}/messages/chat" headers = {"Content-Type": "application/x-www-form-urlencoded"} payload = { "token": ULTRAMSG_TOKEN, "to": to, "body": message } try: response = requests.post(url, headers=headers, data=payload) print("📤 تم الإرسال:", response.text) except Exception as e: print("❌ فشل الإرسال:", e)
+
+if name == 'main': port = int(os.environ.get("PORT", 5000)) app.run(host='0.0.0.0', port=port, debug=True)
 
