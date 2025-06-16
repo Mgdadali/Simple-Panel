@@ -1,4 +1,10 @@
-import os import json from flask import Flask, request, render_template_string, redirect, url_for, session, jsonify import gspread from google.oauth2.service_account import Credentials from datetime import datetime import requests
+import os
+import json 
+from flask import Flask, request, render_template_string, redirect, url_for, session, jsonify 
+import gspread 
+from google.oauth2.service_account import Credentials 
+from datetime import datetime 
+import requests
 
 app = Flask(name) app.secret_key = 'your_secret_key_here'
 
