@@ -1,14 +1,13 @@
 import os
 import json
-import requests
-import gspread
 from flask import Flask, request, render_template_string, redirect, url_for, session
+import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import requests
 
-# إعداد التطبيق
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # غيّره عند النشر
+app.secret_key = 'your_secret_key_here'  # غيّرو في الإنتاج
 
 # بيانات الموظفين
 USERS = {
@@ -34,77 +33,43 @@ log_sheet = client.open_by_key(SHEET_ID).worksheet("Messages Log")
 ULTRAMSG_TOKEN = os.getenv('ULTRAMSG_TOKEN')
 ULTRAMSG_INSTANCE = os.getenv('ULTRAMSG_INSTANCE')
 
-# صفحة تسجيل الدخول
+# واجهة تسجيل الدخول
 LOGIN_PAGE = '''
 <!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8">
-  <title>تسجيل الدخول</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-</head>
-<body class="p-5 bg-light">
-  <div class="container col-md-6 bg-white p-5 rounded shadow">
-    <h2 class="mb-4">تسجيل الدخول</h2>
-    <form method="POST">
-      <div class="mb-3">
-        <label class="form-label">رقم الموظف:</label>
-        <input type="text" name="username" class="form-control" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">كلمة المرور:</label>
-        <input type="password" name="password" class="form-control" required>
-      </div>
-      <button type="submit" class="btn btn-primary">دخول</button>
-    </form>
-    {% if error %}
-    <div class="alert alert-danger mt-3">{{ error }}</div>
-    {% endif %}
-  </div>
-</body>
-</html>
+<title>تسجيل الدخول</title>
+<h2>تسجيل الدخول</h2>
+<form method="POST">
+  <label>رقم الموظف:</label><br>
+  <input type="text" name="username" required><br>
+  <label>كلمة المرور:</label><br>
+  <input type="password" name="password" required><br><br>
+  <input type="submit" value="دخول">
+</form>
+{% if error %}<p style="color:red">{{ error }}</p>{% endif %}
 '''
 
-# صفحة الرسائل
+# واجهة لوحة الرسائل
 DASHBOARD_PAGE = '''
 <!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8">
-  <title>لوحة الرسائل</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-</head>
-<body class="p-5 bg-light">
-  <div class="container col-md-10 bg-white p-4 rounded shadow">
-    <h2 class="mb-4">مرحباً {{ username }}</h2>
-    <form method="POST">
-      <div class="mb-3">
-        <label for="recipient" class="form-label">اختر المحادثة:</label>
-        <select name="recipient" class="form-select" required>
-          {% for row in messages %}
-          <option value="{{ row['Phone'] }}">{{ row['Phone'] }}: {{ row['LastMessage'][:30] }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="mb-3">
-        <label for="reply" class="form-label">الرد:</label>
-        <textarea name="reply" class="form-control" rows="3" required></textarea>
-      </div>
-      <button type="submit" class="btn btn-success">📤 إرسال الرد</button>
-    </form>
-
-    <hr>
-    <h5>📨 آخر الرسائل</h5>
-    <ul class="list-group">
-      {% for row in messages %}
-      <li class="list-group-item"><strong>{{ row['Phone'] }}</strong>: {{ row['LastMessage'] }}</li>
-      {% endfor %}
-    </ul>
-
-    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger mt-4">🚪 تسجيل الخروج</a>
-  </div>
-</body>
-</html>
+<title>لوحة الرسائل</title>
+<h2>مرحباً {{ username }}</h2>
+<form method="POST">
+  <label for="recipient">اختر المحادثة:</label><br>
+  <select name="recipient">
+    {% for row in messages %}
+      <option value="{{ row['Phone'] }}">{{ row['Phone'] }}: {{ row['LastMessage'][:30] }}</option>
+    {% endfor %}
+  </select><br><br>
+  <label for="reply">رد:</label><br>
+  <textarea name="reply" rows="3" cols="50" required></textarea><br><br>
+  <input type="submit" value="إرسال الرد">
+</form>
+<ul>
+{% for row in messages %}
+  <li><b>{{ row['Phone'] }}</b>: {{ row['LastMessage'] }}</li>
+{% endfor %}
+</ul>
+<a href="{{ url_for('logout') }}">🚪 تسجيل الخروج</a>
 '''
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -152,7 +117,7 @@ def send_message(to, message):
     }
     try:
         response = requests.post(url, headers=headers, data=payload)
-        print("📤 تم الإرسال:", response.text)
+        print("📤 تم الإرسال:", response.status_code, response.text)  # ← سطر التتبع المهم
     except Exception as e:
         print("❌ فشل الإرسال:", e)
 
