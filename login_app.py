@@ -48,7 +48,7 @@ LOGIN_PAGE = '''
 {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
 '''
 
-# واجهة لوحة الرسائل (المحدثة بـ Tailwind + شعار 249)
+# واجهة لوحة الرسائل
 DASHBOARD_PAGE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -61,7 +61,6 @@ DASHBOARD_PAGE = '''
 
   <div class="max-w-5xl mx-auto py-8 px-4">
 
-    <!-- الشعار وشريط العنوان -->
     <div class="flex justify-between items-center mb-8">
       <div class="flex items-center space-x-4 space-x-reverse">
         <img src="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" alt="شعار 249" class="w-16 h-16 rounded shadow-md">
@@ -73,7 +72,6 @@ DASHBOARD_PAGE = '''
       </div>
     </div>
 
-    <!-- فورم الرد -->
     <div class="bg-white shadow-md rounded-lg p-6 mb-8">
       <form method="POST" class="space-y-4">
         <div>
@@ -94,7 +92,6 @@ DASHBOARD_PAGE = '''
       </form>
     </div>
 
-    <!-- عرض الرسائل -->
     <div class="bg-white shadow-md rounded-lg p-4">
       <h3 class="text-lg font-semibold mb-4 text-gray-700">المحادثات الحالية</h3>
       <ul class="space-y-3">
@@ -149,6 +146,11 @@ def logout():
     return redirect(url_for('login'))
 
 def send_message(to, message):
+    if "@c.us" in to:
+        to = to.replace("@c.us", "")
+    if not to.startswith("2"):
+        print("❌ رقم غير صالح:", to)
+        return
     url = f"https://api.ultramsg.com/{ULTRAMSG_INSTANCE}/messages/chat"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     payload = {
@@ -158,7 +160,7 @@ def send_message(to, message):
     }
     try:
         response = requests.post(url, headers=headers, data=payload)
-        print("📤 تم الإرسال:", response.status_code, response.text)
+        print("📤 تم إرسال الرد:", response.status_code, response.text)
     except Exception as e:
         print("❌ فشل الإرسال:", e)
 
@@ -168,4 +170,4 @@ def log_message(phone, sender, message):
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port)
