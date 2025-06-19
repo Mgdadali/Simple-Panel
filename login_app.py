@@ -7,9 +7,9 @@ from datetime import datetime
 import requests
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # غيّرو في الإنتاج
+app.secret_key = 'your_secret_key_here'  # غيّر المفتاح في الإنتاج
 
-# بيانات الموظفين
+# بيانات تسجيل الدخول للموظفين
 USERS = {
     "201029664170": "pass1",
     "201029773000": "pass2",
@@ -20,7 +20,7 @@ USERS = {
     "201055855030": "pass7"
 }
 
-# إعداد Google Sheets
+# Google Sheets
 SHEET_ID = '10-gDKaxRQfJqkIoiF3BYQ0YiNXzG7Ml9Pm5r9X9xfCM'
 scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 json_creds = os.getenv('GOOGLE_CREDENTIALS')
@@ -29,9 +29,9 @@ client = gspread.authorize(credentials)
 sheet = client.open_by_key(SHEET_ID).worksheet("sheet")
 log_sheet = client.open_by_key(SHEET_ID).worksheet("Messages Log")
 
-# إعداد Ultramsg
-ULTRAMSG_TOKEN = os.getenv('ULTRAMSG_TOKEN')
-ULTRAMSG_INSTANCE = os.getenv('ULTRAMSG_INSTANCE')
+# Ultramsg - تم التثبيت يدويًا من قيمك
+ULTRAMSG_INSTANCE = "instance124923"
+ULTRAMSG_TOKEN = "cy1phhf1mrsg8eia"
 
 # واجهة تسجيل الدخول
 LOGIN_PAGE = '''
@@ -48,7 +48,7 @@ LOGIN_PAGE = '''
 {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
 '''
 
-# واجهة لوحة الرسائل
+# واجهة لوحة التحكم
 DASHBOARD_PAGE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -58,9 +58,7 @@ DASHBOARD_PAGE = '''
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
-
   <div class="max-w-5xl mx-auto py-8 px-4">
-
     <div class="flex justify-between items-center mb-8">
       <div class="flex items-center space-x-4 space-x-reverse">
         <img src="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" alt="شعار 249" class="w-16 h-16 rounded shadow-md">
@@ -75,7 +73,7 @@ DASHBOARD_PAGE = '''
     <div class="bg-white shadow-md rounded-lg p-6 mb-8">
       <form method="POST" class="space-y-4">
         <div>
-          <label for="recipient" class="block text-gray-700 font-medium mb-1">اختر المحادثة:</label>
+          <label class="block text-gray-700 font-medium mb-1">اختر المحادثة:</label>
           <select name="recipient" class="w-full p-2 border border-gray-300 rounded">
             {% for row in messages %}
               <option value="{{ row['Phone'] }}">{{ row['Phone'] }}: {{ row['LastMessage'][:30] }}</option>
@@ -83,7 +81,7 @@ DASHBOARD_PAGE = '''
           </select>
         </div>
         <div>
-          <label for="reply" class="block text-gray-700 font-medium mb-1">الرد:</label>
+          <label class="block text-gray-700 font-medium mb-1">الرد:</label>
           <textarea name="reply" rows="3" class="w-full p-2 border border-gray-300 rounded" placeholder="اكتب الرد هنا..." required></textarea>
         </div>
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
@@ -103,9 +101,7 @@ DASHBOARD_PAGE = '''
         {% endfor %}
       </ul>
     </div>
-
   </div>
-
 </body>
 </html>
 '''
@@ -146,11 +142,12 @@ def logout():
     return redirect(url_for('login'))
 
 def send_message(to, message):
-    if "@c.us" in to:
-        to = to.replace("@c.us", "")
-    if not to.startswith("2"):
-        print("❌ رقم غير صالح:", to)
-        return
+    # تنظيف الرقم
+    to = to.replace("@c.us", "").replace(" ", "").strip()
+
+    print("📤 إرسال إلى:", to)
+    print("🔐 TOKEN:", ULTRAMSG_TOKEN[:6], "...")  # جزء فقط
+
     url = f"https://api.ultramsg.com/{ULTRAMSG_INSTANCE}/messages/chat"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     payload = {
@@ -158,11 +155,12 @@ def send_message(to, message):
         "to": to,
         "body": message
     }
+
     try:
         response = requests.post(url, headers=headers, data=payload)
         print("📤 تم إرسال الرد:", response.status_code, response.text)
     except Exception as e:
-        print("❌ فشل الإرسال:", e)
+        print("❌ خطأ أثناء الإرسال:", e)
 
 def log_message(phone, sender, message):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -170,4 +168,4 @@ def log_message(phone, sender, message):
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
