@@ -54,57 +54,69 @@ DASHBOARD_PAGE = '''
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة التحكم - {{ username }}</title>
+  <title>Respond 249 - لوحة التحكم</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
-  <div class="max-w-5xl mx-auto py-8 px-4">
-    <div class="flex justify-between items-center mb-8">
+
+  <div class="max-w-5xl mx-auto py-6 px-4">
+
+    <!-- رأس الصفحة -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
       <div class="flex items-center space-x-4 space-x-reverse">
-        <img src="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" alt="شعار 249" class="w-16 h-16 rounded shadow-md">
-        <h1 class="text-3xl font-extrabold text-gray-800">نظام الرد على العملاء - 249</h1>
+        <img src="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" alt="شعار 249" class="w-14 h-14 rounded shadow">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-800">Respond 249 - لوحة الموظف</h1>
       </div>
-      <div>
-        <span class="text-gray-700 font-semibold">👤 {{ username }}</span>
-        <a href="{{ url_for('logout') }}" class="ml-4 text-red-600 hover:underline">🚪 تسجيل الخروج</a>
+      <div class="text-right mt-4 sm:mt-0">
+        <span class="text-gray-700 font-semibold block sm:inline">👤 {{ username }}</span>
+        <a href="{{ url_for('logout') }}" class="text-red-600 hover:underline block sm:inline mt-1 sm:mt-0">🚪 تسجيل الخروج</a>
       </div>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg p-6 mb-8">
-      <form method="POST" class="space-y-4">
+    <!-- نموذج الرد -->
+    <div class="bg-white shadow rounded-xl p-6 mb-8">
+      <form method="POST" class="space-y-5">
         <div>
-          <label class="block text-gray-700 font-medium mb-1">اختر المحادثة:</label>
-          <select name="recipient" class="w-full p-2 border border-gray-300 rounded">
+          <label class="block text-sm font-medium text-gray-700 mb-1">اختر المحادثة:</label>
+          <select name="recipient" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
             {% for row in messages %}
               <option value="{{ row['Phone'] }}">{{ row['Phone'] }}: {{ row['LastMessage'][:30] }}</option>
             {% endfor %}
           </select>
         </div>
         <div>
-          <label class="block text-gray-700 font-medium mb-1">الرد:</label>
-          <textarea name="reply" rows="3" class="w-full p-2 border border-gray-300 rounded" placeholder="اكتب الرد هنا..." required></textarea>
+          <label class="block text-sm font-medium text-gray-700 mb-1">الرد:</label>
+          <textarea name="reply" rows="3" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="اكتب الرد هنا..."></textarea>
         </div>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-          إرسال الرد
+        <button type="submit" class="bg-blue-600 text-white w-full sm:w-auto px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+          📤 إرسال الرد
         </button>
       </form>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg p-4">
-      <h3 class="text-lg font-semibold mb-4 text-gray-700">المحادثات الحالية</h3>
-      <ul class="space-y-3">
+    <!-- عرض المحادثات -->
+    <div class="bg-white shadow rounded-xl p-6">
+      <h3 class="text-lg font-semibold mb-4 text-gray-700">📬 المحادثات الحالية</h3>
+      <ul class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
         {% for row in messages %}
-          <li class="border-b pb-2">
-            <span class="font-bold text-gray-800">{{ row['Phone'] }}</span>:
-            <span class="text-gray-600">{{ row['LastMessage'] }}</span>
+          <li class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm text-sm">
+            <div class="font-bold text-gray-800 mb-1">{{ row['Phone'] }}</div>
+            <div class="text-gray-600">{{ row['LastMessage'] }}</div>
           </li>
         {% endfor %}
       </ul>
     </div>
+
   </div>
+
 </body>
 </html>
 '''
+          
+        
+     
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
