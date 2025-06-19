@@ -49,73 +49,81 @@ LOGIN_PAGE = '''
 '''
 
 # واجهة لوحة التحكم
-DASHBOARD_PAGE = '''
+DASHBOARD_CHAT_PAGE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>Respond 249 - لوحة التحكم</title>
+  <title>Respond 249 - دردشة العملاء</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
 
-  <div class="max-w-5xl mx-auto py-6 px-4">
+<div class="flex flex-col md:flex-row h-screen">
 
-    <!-- رأس الصفحة -->
-    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
-      <div class="flex items-center space-x-4 space-x-reverse">
-        <img src="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" alt="شعار 249" class="w-14 h-14 rounded shadow">
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-800">Respond 249 - لوحة الموظف</h1>
-      </div>
-      <div class="text-right mt-4 sm:mt-0">
-        <span class="text-gray-700 font-semibold block sm:inline">👤 {{ username }}</span>
-        <a href="{{ url_for('logout') }}" class="text-red-600 hover:underline block sm:inline mt-1 sm:mt-0">🚪 تسجيل الخروج</a>
-      </div>
+  <!-- قائمة المحادثات -->
+  <div class="w-full md:w-1/3 bg-white border-r overflow-y-auto">
+    <div class="p-4 flex items-center justify-between border-b">
+      <h2 class="text-xl font-bold">📱 المحادثات</h2>
+      <span class="text-gray-600 text-sm">👤 {{ username }}</span>
     </div>
-
-    <!-- نموذج الرد -->
-    <div class="bg-white shadow rounded-xl p-6 mb-8">
-      <form method="POST" class="space-y-5">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">اختر المحادثة:</label>
-          <select name="recipient" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-            {% for row in messages %}
-              <option value="{{ row['Phone'] }}">{{ row['Phone'] }}: {{ row['LastMessage'][:30] }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">الرد:</label>
-          <textarea name="reply" rows="3" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="اكتب الرد هنا..."></textarea>
-        </div>
-        <button type="submit" class="bg-blue-600 text-white w-full sm:w-auto px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-          📤 إرسال الرد
-        </button>
-      </form>
-    </div>
-
-    <!-- عرض المحادثات -->
-    <div class="bg-white shadow rounded-xl p-6">
-      <h3 class="text-lg font-semibold mb-4 text-gray-700">📬 المحادثات الحالية</h3>
-      <ul class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-        {% for row in messages %}
-          <li class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm text-sm">
-            <div class="font-bold text-gray-800 mb-1">{{ row['Phone'] }}</div>
-            <div class="text-gray-600">{{ row['LastMessage'] }}</div>
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-
+    <ul>
+      {% for row in clients %}
+        <li>
+          <a href="{{ url_for('dashboard', phone=row['Phone']) }}"
+             class="block px-4 py-3 border-b hover:bg-blue-50 {% if row['Phone'] == selected_phone %}bg-blue-100{% endif %}">
+            <div class="font-bold text-gray-800">{{ row['Phone'] }}</div>
+            <div class="text-sm text-gray-600 truncate">{{ row['LastMessage'] }}</div>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
   </div>
+
+  <!-- شاشة الرسائل -->
+  <div class="flex-1 flex flex-col">
+    <div class="flex-1 overflow-y-auto p-4">
+      {% if selected_phone %}
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">📨 الرسائل مع: {{ selected_phone }}</h3>
+        <div class="space-y-3">
+          {% for msg in selected_messages %}
+            <div class="{% if msg['Sender'] == username %}text-left{% else %}text-right{% endif %}">
+              <div class="inline-block px-4 py-2 rounded-xl 
+                {% if msg['Sender'] == username %}
+                  bg-blue-600 text-white
+                {% else %}
+                  bg-gray-200 text-gray-800
+                {% endif %}">
+                {{ msg['Message'] }}
+              </div>
+              <div class="text-xs text-gray-500 mt-1">{{ msg['Timestamp'] }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-center text-gray-500 mt-10">اختر محادثة من القائمة</p>
+      {% endif %}
+    </div>
+
+    {% if selected_phone %}
+    <!-- نموذج الرد -->
+    <form method="POST" class="p-4 bg-white border-t flex gap-3">
+      <input type="hidden" name="recipient" value="{{ selected_phone }}">
+      <textarea name="reply" rows="2" required
+        class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-500"
+        placeholder="اكتب الرد هنا..."></textarea>
+      <button type="submit" class="bg-blue-600 text-white px-4 rounded hover:bg-blue-700 transition">إرسال</button>
+    </form>
+    {% endif %}
+  </div>
+
+</div>
 
 </body>
 </html>
 '''
-          
-        
      
 
 @app.route('/login', methods=['GET', 'POST'])
