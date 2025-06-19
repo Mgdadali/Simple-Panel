@@ -138,16 +138,28 @@ def dashboard():
 
     username = session['user']
     data = sheet.get_all_records()
-    my_messages = [row for row in data if str(row['AssignedTo']) == username]
+    my_clients = [row for row in data if str(row['AssignedTo']) == username]
+
+    selected_phone = request.args.get("phone")
+    selected_messages = []
+
+    if selected_phone:
+        log_data = log_sheet.get_all_records()
+        selected_messages = [row for row in log_data if row['Phone'] == selected_phone]
 
     if request.method == 'POST':
         recipient = request.form['recipient']
         reply = request.form['reply']
         send_message(recipient, reply)
         log_message(recipient, username, reply)
+        return redirect(url_for('dashboard', phone=recipient))
 
-    return render_template_string(DASHBOARD_PAGE, username=username, messages=my_messages)
-
+    return render_template_string(DASHBOARD_CHAT_PAGE,
+                                  username=username,
+                                  clients=my_clients,
+                                  selected_phone=selected_phone,
+                                  selected_messages=selected_messages)
+    
 @app.route('/logout')
 def logout():
     session.pop('user', None)
