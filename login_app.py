@@ -75,36 +75,31 @@ DASHBOARD_CHAT_PAGE = '''
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>Respond 249 - لوحة المحادثات</title>
+  <title>Respond 249 - دردشة العملاء</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .scrollbar-hide::-webkit-scrollbar {
-      display: none;
-    }
-  </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
 <div class="flex flex-col md:flex-row h-screen">
 
-  <!-- القائمة الجانبية -->
-  <div class="w-full md:w-1/3 bg-white border-r overflow-y-auto scrollbar-hide">
+  <!-- قائمة المحادثات -->
+  <div class="w-full md:w-1/3 bg-white border-r overflow-y-auto">
     <div class="p-4 flex items-center justify-between border-b">
-      <h2 class="text-xl font-bold">💬 محادثات</h2>
+      <h2 class="text-xl font-bold">📱 المحادثات</h2>
       <span class="text-gray-600 text-sm">👤 {{ username }}</span>
     </div>
     <ul>
       {% for row in clients %}
         <li>
           <a href="{{ url_for('dashboard', phone=row['Phone']) }}"
-             class="flex items-center gap-3 px-4 py-3 border-b hover:bg-blue-50 {% if row['Phone'] == selected_phone %}bg-blue-100{% endif %}">
-            <img src="https://www.svgrepo.com/show/382106/account-avatar-profile-user-11.svg"
-                 class="h-10 w-10 rounded-full border" alt="user">
-            <div class="flex-1">
+             class="block px-4 py-3 border-b hover:bg-blue-50 {% if row['Phone'] == selected_phone %}bg-blue-100{% endif %} flex items-center gap-3">
+            <img src="https://i.ibb.co/zV68yYn9/Screenshot-20250621-080809-Cap-Cut.jpg"
+                 class="w-8 h-8 rounded-full border shadow">
+            <div>
               <div class="font-bold text-gray-800">{{ row['Phone'] }}</div>
-              <div class="text-sm text-gray-500 truncate">{{ row['LastMessage'] }}</div>
+              <div class="text-sm text-gray-600 truncate">{{ row['LastMessage'] }}</div>
             </div>
           </a>
         </li>
@@ -112,40 +107,42 @@ DASHBOARD_CHAT_PAGE = '''
     </ul>
   </div>
 
-  <!-- واجهة المحادثة -->
+  <!-- شاشة الرسائل -->
   <div class="flex-1 flex flex-col">
-    <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide bg-gray-50">
+    <div class="flex-1 overflow-y-auto p-4 bg-gray-50">
       {% if selected_phone %}
-        <h3 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">📨 المحادثة مع: {{ selected_phone }}</h3>
-        {% for msg in selected_messages %}
-          <div class="flex {% if msg['Sender'] == username %}justify-start{% else %}justify-end{% endif %}">
-            <div class="max-w-xs md:max-w-md px-4 py-3 rounded-2xl shadow 
-              {% if msg['Sender'] == username %}
-                bg-blue-600 text-white rounded-br-none
-              {% else %}
-                bg-white text-gray-800 border rounded-bl-none
-              {% endif %}">
-              <div class="text-sm break-words">{{ msg['Message'] }}</div>
-              <div class="text-[10px] text-gray-300 mt-1 text-left ltr:text-right">
-                {{ msg['Timestamp'] }}
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">📨 الرسائل مع: {{ selected_phone }}</h3>
+        <div class="space-y-2">
+          {% for msg in selected_messages %}
+            {% set is_sender = msg['Sender'] == username %}
+            <div class="flex {% if is_sender %}justify-end{% else %}justify-start{% endif %}">
+              <div class="max-w-xs md:max-w-md px-4 py-2 my-1 rounded-2xl shadow 
+                          {% if is_sender %}
+                            bg-blue-600 text-white rounded-br-none
+                          {% else %}
+                            bg-white text-gray-800 rounded-bl-none border
+                          {% endif %}">
+                <div class="whitespace-pre-wrap">{{ msg['Message'] }}</div>
+                <div class="text-xs text-gray-300 mt-1 text-left rtl:text-right">
+                  {{ msg['Timestamp'] }}
+                </div>
               </div>
             </div>
-          </div>
-        {% endfor %}
+          {% endfor %}
+        </div>
       {% else %}
-        <p class="text-center text-gray-400 mt-20 text-xl">اختر محادثة من القائمة</p>
+        <p class="text-center text-gray-500 mt-10">اختر محادثة من القائمة</p>
       {% endif %}
     </div>
 
     {% if selected_phone %}
     <!-- نموذج الرد -->
-    <form method="POST" class="p-4 bg-white border-t flex gap-2">
+    <form method="POST" class="p-4 bg-white border-t flex gap-3">
       <input type="hidden" name="recipient" value="{{ selected_phone }}">
       <textarea name="reply" rows="2" required
-        class="flex-1 p-2 border rounded-xl focus:outline-none focus:ring focus:ring-blue-500"
+        class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-500"
         placeholder="اكتب الرد هنا..."></textarea>
-      <button type="submit"
-              class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition">إرسال</button>
+      <button type="submit" class="bg-blue-600 text-white px-4 rounded hover:bg-blue-700 transition">إرسال</button>
     </form>
     {% endif %}
   </div>
