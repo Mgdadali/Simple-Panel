@@ -7,9 +7,9 @@ from datetime import datetime
 import requests
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # غيّر المفتاح في الإنتاج
+app.secret_key = 'your_secret_key_here'
 
-# بيانات تسجيل الدخول للموظفين
+# بيانات تسجيل الدخول
 USERS = {
     "201029664170": "pass1",
     "201029773000": "pass2",
@@ -20,7 +20,7 @@ USERS = {
     "201055855030": "pass7"
 }
 
-# Google Sheets
+# ربط Google Sheets
 SHEET_ID = '10-gDKaxRQfJqkIoiF3BYQ0YiNXzG7Ml9Pm5r9X9xfCM'
 scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 json_creds = os.getenv('GOOGLE_CREDENTIALS')
@@ -29,52 +29,71 @@ client = gspread.authorize(credentials)
 sheet = client.open_by_key(SHEET_ID).worksheet("sheet")
 log_sheet = client.open_by_key(SHEET_ID).worksheet("Messages Log")
 
-# Ultramsg - تم التثبيت يدويًا من قيمك
+# بيانات ultramsg
 ULTRAMSG_INSTANCE = "instance124923"
 ULTRAMSG_TOKEN = "cy1phhf1mrsg8eia"
 
 # واجهة تسجيل الدخول
 LOGIN_PAGE = '''
 <!doctype html>
-<title>تسجيل الدخول</title>
-<h2>تسجيل الدخول</h2>
-<form method="POST">
-  <label>رقم الموظف:</label><br>
-  <input type="text" name="username" required><br>
-  <label>كلمة المرور:</label><br>
-  <input type="password" name="password" required><br><br>
-  <input type="submit" value="دخول">
-</form>
-{% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>تسجيل الدخول</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
+    <div class="flex justify-center mb-4">
+      <img src="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" class="h-16" alt="logo">
+    </div>
+    <h2 class="text-center text-2xl font-bold mb-6 text-blue-700">تسجيل الدخول</h2>
+    <form method="POST" class="space-y-4">
+      <div>
+        <label class="block mb-1">📱 رقم الموظف:</label>
+        <input type="text" name="username" class="w-full border rounded p-2" required>
+      </div>
+      <div>
+        <label class="block mb-1">🔒 كلمة المرور:</label>
+        <input type="password" name="password" class="w-full border rounded p-2" required>
+      </div>
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">دخول</button>
+    </form>
+    {% if error %}
+    <p class="text-red-600 text-sm mt-4 text-center">{{ error }}</p>
+    {% endif %}
+  </div>
+</body>
+</html>
 '''
 
-# واجهة لوحة التحكم
+# لوحة التحكم والمحادثات
 DASHBOARD_CHAT_PAGE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>Respond 249 - دردشة العملاء</title>
+  <title>Respond 249</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100">
 
 <div class="flex flex-col md:flex-row h-screen">
 
-  <!-- قائمة المحادثات -->
+  <!-- المحادثات -->
   <div class="w-full md:w-1/3 bg-white border-r overflow-y-auto">
-    <div class="p-4 flex items-center justify-between border-b">
-      <h2 class="text-xl font-bold">📱 المحادثات</h2>
-      <span class="text-gray-600 text-sm">👤 {{ username }}</span>
+    <div class="p-4 flex justify-between items-center border-b bg-blue-50">
+      <h2 class="text-lg font-bold text-blue-700">📱 المحادثات</h2>
+      <div class="text-sm text-gray-600">👤 {{ username }}</div>
     </div>
     <ul>
       {% for row in clients %}
         <li>
           <a href="{{ url_for('dashboard', phone=row['Phone']) }}"
-             class="block px-4 py-3 border-b hover:bg-blue-50 {% if row['Phone'] == selected_phone %}bg-blue-100{% endif %}">
-            <div class="font-bold text-gray-800">{{ row['Phone'] }}</div>
+             class="block px-4 py-3 border-b hover:bg-blue-100 {% if row['Phone'] == selected_phone %}bg-blue-200{% endif %}">
+            <div class="font-bold">{{ row['Phone'] }}</div>
             <div class="text-sm text-gray-600 truncate">{{ row['LastMessage'] }}</div>
           </a>
         </li>
@@ -82,11 +101,11 @@ DASHBOARD_CHAT_PAGE = '''
     </ul>
   </div>
 
-  <!-- شاشة الرسائل -->
+  <!-- الرسائل -->
   <div class="flex-1 flex flex-col">
     <div class="flex-1 overflow-y-auto p-4">
       {% if selected_phone %}
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">📨 الرسائل مع: {{ selected_phone }}</h3>
+        <h3 class="text-xl font-semibold mb-4 text-blue-800">💬 المحادثة مع: {{ selected_phone }}</h3>
         <div class="space-y-3">
           {% for msg in selected_messages %}
             <div class="{% if msg['Sender'] == username %}text-left{% else %}text-right{% endif %}">
@@ -108,23 +127,18 @@ DASHBOARD_CHAT_PAGE = '''
     </div>
 
     {% if selected_phone %}
-    <!-- نموذج الرد -->
-    <form method="POST" class="p-4 bg-white border-t flex gap-3">
+    <form method="POST" class="p-4 bg-white border-t flex gap-2">
       <input type="hidden" name="recipient" value="{{ selected_phone }}">
-      <textarea name="reply" rows="2" required
-        class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-500"
-        placeholder="اكتب الرد هنا..."></textarea>
-      <button type="submit" class="bg-blue-600 text-white px-4 rounded hover:bg-blue-700 transition">إرسال</button>
+      <textarea name="reply" rows="2" class="flex-1 border rounded-lg p-2" placeholder="اكتب ردك..." required></textarea>
+      <button type="submit" class="bg-blue-600 text-white px-4 rounded hover:bg-blue-700">إرسال</button>
     </form>
     {% endif %}
   </div>
-
 </div>
 
 </body>
 </html>
 '''
-     
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -167,19 +181,14 @@ def dashboard():
                                   clients=my_clients,
                                   selected_phone=selected_phone,
                                   selected_messages=selected_messages)
-    
+
 @app.route('/logout')
 def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
 def send_message(to, message):
-    # تنظيف الرقم
-    to = to.replace("@c.us", "").replace(" ", "").strip()
-
-    print("📤 إرسال إلى:", to)
-    print("🔐 TOKEN:", ULTRAMSG_TOKEN[:6], "...")  # جزء فقط
-
+    to = to.replace("@c.us", "").strip()
     url = f"https://api.ultramsg.com/{ULTRAMSG_INSTANCE}/messages/chat"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     payload = {
@@ -187,10 +196,9 @@ def send_message(to, message):
         "to": to,
         "body": message
     }
-
     try:
         response = requests.post(url, headers=headers, data=payload)
-        print("📤 تم إرسال الرد:", response.status_code, response.text)
+        print("📤 تم الإرسال:", response.status_code, response.text)
     except Exception as e:
         print("❌ خطأ أثناء الإرسال:", e)
 
