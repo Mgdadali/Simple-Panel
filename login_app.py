@@ -69,12 +69,13 @@ LOGIN_PAGE = '''
 '''
 
 # لوحة التحكم والمحادثات
+
 DASHBOARD_CHAT_PAGE = '''
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>Respond 249 - دردشة العملاء</title>
+  <title>Respond 249 - لوحة المحادثات</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="https://i.ibb.co/bR2qkN9q/6dd05738-f28d-457f-a1b3-fa9ffa42abb6.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -88,10 +89,10 @@ DASHBOARD_CHAT_PAGE = '''
 
 <div class="flex flex-col md:flex-row h-screen">
 
-  <!-- قائمة المحادثات -->
+  <!-- القائمة الجانبية -->
   <div class="w-full md:w-1/3 bg-white border-r overflow-y-auto scrollbar-hide">
     <div class="p-4 flex items-center justify-between border-b">
-      <h2 class="text-xl font-bold">💬 محادثات العملاء</h2>
+      <h2 class="text-xl font-bold">💬 محادثات</h2>
       <span class="text-gray-600 text-sm">👤 {{ username }}</span>
     </div>
     <ul>
@@ -111,20 +112,20 @@ DASHBOARD_CHAT_PAGE = '''
     </ul>
   </div>
 
-  <!-- شاشة المحادثة -->
+  <!-- واجهة المحادثة -->
   <div class="flex-1 flex flex-col">
     <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide bg-gray-50">
       {% if selected_phone %}
         <h3 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">📨 المحادثة مع: {{ selected_phone }}</h3>
         {% for msg in selected_messages %}
-          <div class="w-full flex {% if msg['Sender'] == username %}justify-start{% else %}justify-end{% endif %}">
-            <div class="max-w-xs md:max-w-md p-3 rounded-2xl shadow 
-                        {% if msg['Sender'] == username %}
-                          bg-blue-600 text-white rounded-br-none
-                        {% else %}
-                          bg-white text-gray-800 border rounded-bl-none
-                        {% endif %}">
-              <div class="text-sm">{{ msg['Message'] }}</div>
+          <div class="flex {% if msg['Sender'] == username %}justify-start{% else %}justify-end{% endif %}">
+            <div class="max-w-xs md:max-w-md px-4 py-3 rounded-2xl shadow 
+              {% if msg['Sender'] == username %}
+                bg-blue-600 text-white rounded-br-none
+              {% else %}
+                bg-white text-gray-800 border rounded-bl-none
+              {% endif %}">
+              <div class="text-sm break-words">{{ msg['Message'] }}</div>
               <div class="text-[10px] text-gray-300 mt-1 text-left ltr:text-right">
                 {{ msg['Timestamp'] }}
               </div>
@@ -132,7 +133,7 @@ DASHBOARD_CHAT_PAGE = '''
           </div>
         {% endfor %}
       {% else %}
-        <p class="text-center text-gray-400 mt-20 text-xl">اختر محادثة من القائمة لعرض الرسائل</p>
+        <p class="text-center text-gray-400 mt-20 text-xl">اختر محادثة من القائمة</p>
       {% endif %}
     </div>
 
